@@ -62,10 +62,11 @@ git clone https://github.com/MilanBepari/restic-wp-backup.git
 cd restic-wp-backup
 ```
 
-Make the script executable.
+Update values in config.env and Make the script executable.
 
 ```bash
-chmod +x backup.sh
+nano config.env
+chmod +x wordpress-backup.sh
 ```
 
 ---
