@@ -177,7 +177,7 @@ check_dependencies() {
     command -v curl >/dev/null 2>&1 || missing+=("curl")
     command -v gzip >/dev/null 2>&1 || missing+=("gzip")
     command -v flock >/dev/null 2>&1 || missing+=("flock")
-    command -v jq >/dev/null 2>&1 || missing+=("jq")
+    command -v grep >/dev/null 2>&1 || missing+=("grep")
 
     if (( ${#missing[@]} > 0 )); then
 
