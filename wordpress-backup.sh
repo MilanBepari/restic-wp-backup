@@ -17,7 +17,7 @@ DB_GZ="${DB_DUMP}.gz"
 
 mkdir -p "$TMP_DIR"
 
-exec >> "$LOG_FILE" 2>&1
+exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo ""
 echo "========================================================"
@@ -71,6 +71,8 @@ EXCLUDE_FILES=(
 
 telegram_send() {
 
+    [[ "${ENABLE_TELEGRAM:-false}" == "true" ]] || return 0
+
     local MESSAGE="$1"
 
     curl -s \
@@ -78,7 +80,7 @@ telegram_send() {
         "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
         -d chat_id="${TELEGRAM_CHAT_ID}" \
         --data-urlencode text="$MESSAGE" \
-        >/dev/null
+        >/dev/null || true
 
 }
 
@@ -118,34 +120,6 @@ ${LOG}"
 trap backup_failed ERR
 
 #############################################
-# Check Dependencies
-#############################################
-
-check_dependencies() {
-
-    local missing=()
-
-    command -v mysqldump >/dev/null 2>&1 || missing+=("mysqldump")
-    command -v curl >/dev/null 2>&1 || missing+=("curl")
-    command -v gzip >/dev/null 2>&1 || missing+=("gzip")
-    command -v flock >/dev/null 2>&1 || missing+=("flock")
-
-    if (( ${#missing[@]} > 0 )); then
-
-        telegram_send "❌ Backup FAILED
-
-Website:
-${SITE_NAME}
-
-Missing command(s):
-$(printf '%s\n' "${missing[@]}")"
-
-        echo "Missing commands: ${missing[*]}"
-        exit 1
-    fi
-}
-
-#############################################
 # Find Binary
 #############################################
 
@@ -177,6 +151,47 @@ Reason:
 Unable to locate the '${BINARY_NAME}' binary."
 
     exit 1
+}
+
+find_binary RESTIC restic \
+    "$(command -v restic 2>/dev/null)" \
+    "/usr/local/bin/restic" \
+    "/usr/bin/restic" \
+    "/bin/restic"
+
+find_binary WPCLI wp \
+    "$(command -v wp 2>/dev/null)" \
+    "/usr/local/bin/wp" \
+    "/usr/bin/wp" \
+    "/opt/cpanel/composer/bin/wp"
+
+#############################################
+# Check Dependencies
+#############################################
+
+check_dependencies() {
+
+    local missing=()
+
+    command -v mysqldump >/dev/null 2>&1 || missing+=("mysqldump")
+    command -v curl >/dev/null 2>&1 || missing+=("curl")
+    command -v gzip >/dev/null 2>&1 || missing+=("gzip")
+    command -v flock >/dev/null 2>&1 || missing+=("flock")
+    command -v jq >/dev/null 2>&1 || missing+=("jq")
+
+    if (( ${#missing[@]} > 0 )); then
+
+        telegram_send "❌ Backup FAILED
+
+Website:
+${SITE_NAME}
+
+Missing command(s):
+$(printf '%s\n' "${missing[@]}")"
+
+        echo "Missing commands: ${missing[*]}"
+        exit 1
+    fi
 }
 
 
@@ -220,18 +235,6 @@ check_lock() {
 
 # Call it immediately
 check_lock
-
-find_binary RESTIC restic \
-    "$(command -v restic 2>/dev/null)" \
-    "/usr/local/bin/restic" \
-    "/usr/bin/restic" \
-    "/bin/restic"
-
-find_binary WPCLI wp \
-    "$(command -v wp 2>/dev/null)" \
-    "/usr/local/bin/wp" \
-    "/usr/bin/wp" \
-    "/opt/cpanel/composer/bin/wp"
 
 #############################################
 # Verify WP Variable
@@ -451,12 +454,6 @@ $RESTIC check --read-data-subset=5%
 
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
-
-# SNAPSHOT=$(
-#     "$RESTIC" snapshots --latest 1 --json \
-#     | grep -o '"short_id":"[^"]*"' \
-#     | cut -d'"' -f4
-#     )
 
 # Safely parse the JSON using jq if available, fallback to grep
 if command -v jq >/dev/null 2>&1; then
