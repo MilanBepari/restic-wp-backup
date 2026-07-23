@@ -1,0 +1,19 @@
+# Configuration
+config.local
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+*.tmp
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+.git
