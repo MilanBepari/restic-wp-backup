@@ -57,9 +57,9 @@ Optional:
 Clone the repository.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/wp-restic-backup.git
+git clone https://github.com/MilanBepari/restic-wp-backup.git
 
-cd wp-restic-backup
+cd restic-wp-backup
 ```
 
 Make the script executable.
